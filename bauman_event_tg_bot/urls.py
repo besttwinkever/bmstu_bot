@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('bot_app.urls')),  # Маршруты приложения
+    path('bot-admin/', admin.site.urls),
+    path('bot-app/', include('bot_app.urls')),
+    path('bot-oauth/', include('oauth.urls'))
 ]

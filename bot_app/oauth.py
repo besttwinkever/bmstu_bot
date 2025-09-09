@@ -3,7 +3,14 @@ from django.core.cache import cache
 import requests
 from django.conf import settings
 
-def auth_token(request):
+
+cache_timeout = 3600
+
+def auth_token(request, session_key):
+    token = cache.get(f"{session_key}_token")
+    if token:
+        return token
+
     # Получение кода авторизации из параметров запроса
     code = request.GET.get('code', '')
 
@@ -12,14 +19,14 @@ def auth_token(request):
 
     # Проверка успешности ответа
     if response.status_code == 200:
+        cache.set(f"{session_key}_token", response.json(), timeout=cache_timeout)
         return response.json()
     else:
         response.raise_for_status()
         
 def get_current_user(request):
-    # Получение токена из Redis
     session_key = f"session_{request.session.session_key}"
-    token = cache.get(f"{session_key}_token")
+    token = auth_token(request, session_key)
 
     # Если токен отсутствует или не содержит `access_token`, возвращаем None
     if token is None or 'access_token' not in token:
@@ -38,13 +45,13 @@ def get_current_user(request):
             user_json = res.json()
             print(user_json)
             user = {
-                'firstname': user_json.get('firstname', ''),
-                'lastname': user_json.get('lastname', ''),
-                'middlename': user_json.get('middlename', ''),
+                'first_name': user_json.get('firstname', ''),
+                'last_name': user_json.get('lastname', ''),
+                'middle_name': user_json.get('middlename', ''),
                 'alias': user_json.get('alias', ''),
-                'username': user_json.get('username', '')
+                'username': user_json.get('username', ''),
+                'groups': user_json.get('groups', [])
             }
-
             # Сохраняем данные пользователя в Redis
             cache.set(f"{session_key}_user", user, timeout=3600)  # Срок действия - 1 час
             return user
@@ -53,11 +60,6 @@ def get_current_user(request):
     
     return None
 
-def set_user_state(telegram_id, state):
-    cache.set(f"state_{telegram_id}", state, timeout=300)  # Храним состояние 5 минут
-
-def get_user_state(telegram_id):
-    return cache.get(f"state_{telegram_id}")
 
 def clear_session(request):
     session_key = f"session_{request.session.session_key}"

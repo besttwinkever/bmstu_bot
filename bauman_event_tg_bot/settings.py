@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from pytz import timezone
 
 load_dotenv()
 
@@ -29,12 +30,10 @@ SECRET_KEY = 'django-insecure-k(0p(+w4kaw$39tn05fdn-uaid!r_dgj%3z+7odhppmf-k@wa$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['baumeventbot.ru', 'www.baumeventbot.ru', '1b8b-91-184-252-239.ngrok-free.app']
-CSRF_TRUSTED_ORIGINS = ['https://baumeventbot.ru', 'https://www.baumeventbot.ru']
-
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'oauth'
 ]
 
 MIDDLEWARE = [
@@ -59,7 +59,7 @@ ROOT_URLCONF = 'bauman_event_tg_bot.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -67,6 +67,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'bauman_event_tg_bot.settings.export_template_vars',
             ],
         },
     },
@@ -83,13 +84,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME', 'tg_bot'),
-        'USER': os.environ.get('DB_USER', 'botuser'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
-        'OPTIONS': {
-            'client_encoding': 'UTF8',  # Укажите явно кодировку клиента
-        }
+        # 'OPTIONS': {
+        #     'client_encoding': 'UTF8',  # Укажите явно кодировку клиента
+        # }
     }
 }
 
@@ -162,29 +163,47 @@ OAUTH_PROFILE_URL = os.getenv("OAUTH_PROFILE_URL")
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-AUTH_USER_MODEL = 'bot_app.User'
+AUTH_USER_MODEL = 'oauth.OauthUser'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Настройки Celery
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Используем Redis как брокер
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Используем Redis для хранения результатов
+CELERY_BROKER_URL = f'redis://{os.environ.get('REDIS_HOST', 'localhost')}:{os.environ.get('REDIS_PORT', '6379')}/0'  # Используем Redis как брокер
+CELERY_RESULT_BACKEND = f'redis://{os.environ.get('REDIS_HOST', 'localhost')}:{os.environ.get('REDIS_PORT', '6379')}/0'  # Используем Redis для хранения результатов
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Europe/Moscow'  # Укажите вашу временную зону
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 CORS_ALLOW_HEADERS = [
     'x-telegram-webapp-data',
     'content-type'
 ]
 
+
+ALLOWED_HOSTS = ['baumeventbot.ru', 'www.baumeventbot.ru', '127.0.0.1']
+
+CSRF_TRUSTED_ORIGINS = ['https://baumeventbot.ru', 'https://www.baumeventbot.ru', 'http://127.0.0.1:8000/']
+
+
 CORS_ALLOWED_ORIGINS = [
     "https://127.0.0.1:8000",
     "https://web.telegram.org"
 ]
+
+
+APP_TZ = timezone('Europe/Moscow')
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+BACKEND_URL = "http://127.0.0.1:8000"
+API_URL = f"https://science.iu5.bmstu.ru/sso/authorize?redirect_uri={BACKEND_URL}/bot-oauth/callback"
+
+
+def export_template_vars(request):
+    data = {}
+    data['API_URL'] = API_URL
+    return data

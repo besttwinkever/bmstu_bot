@@ -28,7 +28,7 @@
     </style>
 </head>
 <body>
-    <h1>Добро пожаловать, {{ data.firstname }}!</h1>
+    <h1>Добро пожаловать, {{ data.first_name }}!</h1>
     <p>{{ data.message }}</p>
     <div class="note">Вы можете закрыть эту страницу.</div>
 
@@ -37,8 +37,8 @@
         if (window.Telegram && Telegram.WebApp) {
             let tg = Telegram.WebApp;
             let data = {
-                firstname: "{{ data.firstname }}",
-                lastname: "{{ data.lastname }}",
+                first_name: "{{ data.first_name }}",
+                lastname: "{{ data.last_name }}",
                 alias: "{{ data.alias }}",
                 message: "{{ data.message }}"
             };
