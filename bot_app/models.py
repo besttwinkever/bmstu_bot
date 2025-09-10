@@ -22,6 +22,6 @@ class Discipline(models.Model):
 
 class BotCommand(models.Model):
     name = models.CharField(max_length=255, unique=True, null=False)
-    applicable_groups = models.ForeignKey(Group, on_delete=models.CASCADE)
+    applicable_groups = models.ManyToManyField(Group)
     description = models.TextField()
 

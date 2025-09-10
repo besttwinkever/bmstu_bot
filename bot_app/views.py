@@ -16,21 +16,8 @@ from django.core.cache import cache
 from django.shortcuts import redirect
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, renderer_classes
-from bot_app.oauth import clear_session, get_current_user, auth_token
 from rest_framework.renderers import TemplateHTMLRenderer
-from telebot import TeleBot, types
-from django.core.files.storage import default_storage
-from bot_app.oauth import set_user_state
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-import icalendar
-from django.http import HttpResponse
-from django.utils.dateparse import parse_date
-from django.utils.timezone import make_aware, is_naive
-from datetime import datetime, time, timedelta
-from django.utils.timezone import get_current_timezone
-from pytz import timezone as pytz_timezone
-from django.views.decorators.clickjacking import xframe_options_exempt
+from telebot import TeleBot
 import os
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = TeleBot(TOKEN)

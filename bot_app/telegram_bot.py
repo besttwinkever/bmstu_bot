@@ -1,3 +1,4 @@
+import telebot
 from telebot import TeleBot, types
 import logging
 import os
@@ -38,6 +39,8 @@ def require_auth(handler_func):
     return wrapper
 
 
+from bot_send_file.commands import *
+
 # Установка всплывающего меню команд
 def set_bot_commands():
     commands = [
@@ -77,18 +80,27 @@ def start(message):
 
 @bot.message_handler(commands=['menu'])
 @require_auth
-def show_menu(user):
-    menu = []
+def show_menu(message):
+    telegram_id = message.chat.id
+    user = TgUser.objects.get(telegram_id=telegram_id)
+    keyboard = telebot.types.InlineKeyboardMarkup()
     for cmd in BotCommand.objects.all():
-        if cmd.applicable_groups.filter(name__in=list(map(lambda g: g.name,user.groups))).exists():
-            menu.append(cmd.name)
-    return menu
+        applicable = list(map(lambda g: g.name,cmd.applicable_groups.all()))
+        if any(user_g in applicable for user_g in list(map(lambda g: g.name,user.user.groups.all()))):
+            keyboard.add(telebot.types.InlineKeyboardButton(text=cmd.name,
+                                                            callback_data=cmd.name))
+
+    bot.send_message(
+        message.chat.id,
+        "Выберите команду:",
+        reply_markup=keyboard
+    )
 
 
 
 @bot.message_handler(commands=['whoami'])
 @require_auth
-def show_menu(message):
+def whoami(message):
     telegram_id = message.chat.id
     user = TgUser.objects.get(telegram_id=telegram_id)
     menu = []
@@ -104,6 +116,7 @@ def show_menu(message):
     elif user.user.groups.filter(name__in=['Сторонний']).exists():
         bot.send_message(telegram_id, f"Сотрудник сторонней организации")
     return menu
+
 
 #
 #

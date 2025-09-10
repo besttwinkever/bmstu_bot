@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
-    'oauth'
+    'oauth',
+    'bot_send_file'
 ]
 
 MIDDLEWARE = [

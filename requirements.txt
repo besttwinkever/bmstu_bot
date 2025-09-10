@@ -4,8 +4,9 @@ djangorestframework
 icalendar
 redis
 django-redis
-psycopg2
+psycopg2-binary
 pyTelegramBotAPI
 celery
 dotenv
 django-jazzmin
+pytz
