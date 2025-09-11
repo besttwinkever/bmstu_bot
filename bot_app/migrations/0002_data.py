@@ -9,15 +9,15 @@ from bot_app.models import BotCommand
 
 def forward(apps, schema_editor):
     db_alias = schema_editor.connection.alias
-    student_group = Group.objects.using(db_alias).get(name="Студент")
+    Group.objects.using(db_alias).get_or_create(name="Студент")
+    Group.objects.using(db_alias).get_or_create(name="Сотрудник")
+    Group.objects.using(db_alias).get_or_create(name="Сторонний")
 
-    cmd = BotCommand.objects.using(db_alias).create(name='Отправить файл', description="Отправка файла отчета по дисциплине")
-    cmd.applicable_groups.set([student_group])
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("bot_send_file", "0001_initial"),
+        ("bot_app", "0001_initial"),
     ]
 
     operations = [

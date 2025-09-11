@@ -13,16 +13,6 @@ def main():
     # Запуск бота в отдельном потоке
     bot_thread = threading.Thread(target=start_bot, daemon=True)
     bot_thread.start()
-    try:
-        # Проверяем доступность ключей в кэше
-        cache.set("test_key", "test_value", timeout=5)
-        value = cache.get("test_key")
-        if value == "test_value":
-            print("Successfully connected to Redis!")
-        else:
-            print("Redis connection test failed: Unable to retrieve test value.")
-    except Exception as e:
-        print(f"Redis connection error: {e}")
 
     try:
         from django.core.management import execute_from_command_line
