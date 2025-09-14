@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from django.db import models
@@ -8,7 +9,9 @@ from bot_app.models import Discipline
 
 # Create your models here.
 class SubmissionType(models.Model):
-    name = models.CharField(max_length=255, null=True, blank=False, unique=True)
+    class Meta:
+        unique_together = (('name', 'discipline'),)
+    name = models.CharField(max_length=255, null=False, blank=False)
     discipline = models.ForeignKey(Discipline, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -28,3 +31,5 @@ class Submission(models.Model):
     user = models.ForeignKey(OauthUser, on_delete=models.CASCADE, related_name='submissions')
     status = models.CharField(max_length=20, choices=CHOICES, default='none')
     status_text = models.TextField(unique=False, null=True)
+    created_at = models.DateTimeField(blank=False, default=datetime.datetime.now)
+    updated_at = models.DateTimeField(blank=True, null=True)

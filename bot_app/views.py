@@ -22,32 +22,6 @@ import os
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = TeleBot(TOKEN)
 
-#
-# @api_view(['GET'])
-# def oauth_callback(request):
-#     telegram_id = request.GET.get('telegram_id', '')
-#
-#     user = request.user
-#     if not user:
-#         return Response({'message': 'User not found'}, status=400)
-#
-#     if telegram_id:
-#         django_user, created = User.objects.get(username=user["username"])
-#         login(request, django_user)
-#         if created:
-#             for group in user.get("groups", []):
-#                 g, cr = Group.objects.get_or_create(name=group)
-#                 django_user.groups.add(g)
-#         url = f"/auth_success?telegram_id={telegram_id}&first_name={user.get("firstname", "")}&"
-#         return redirect(url)
-#     else:
-#         django_user = User.objects.get(username=user["username"])
-#         if django_user:
-#             login(request, django_user)
-#             # return redirect(redirect_url)
-#         else:
-#             return Response({'message': 'User not found'}, status=400)
-
     
 @api_view(['GET'])
 @renderer_classes([TemplateHTMLRenderer])
