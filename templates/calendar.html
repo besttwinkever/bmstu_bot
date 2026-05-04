@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- 🔹 Информация о пользователе -->
+        <!-- Информация о пользователе -->
         <div id="user-info">
             {% if user_info.fio %}
                 <strong>{{ user_info.fio }}</strong>
@@ -21,20 +21,20 @@
             {% endif %}
         </div>
 
-        <!-- 🔹 Заголовок текущей недели -->
+        <!-- Заголовок текущей недели -->
         <h2 id="current-week"></h2>
 
-        <!-- 🔹 Кнопки управления -->
+        <!-- Кнопки управления -->
         <div class="controls">
             <button id="prev-week">← Пред. неделя</button>
             <button id="next-week">След. неделя →</button>
-            <button id="download-ics">📥 Экспорт .ics</button>
+            <button id="download-ics">Экспорт .ics</button>
         </div>
 
-        <!-- 🔹 Отладочная информация -->
+        <!-- Отладочная информация -->
         <p id="debug-log" style="text-align:center; color: red; font-size: 13px;"></p>
 
-        <!-- 🔹 Контейнер для отображения дней недели и событий -->
+        <!-- Контейнер для отображения дней недели и событий -->
         <div id="week-container" class="week-list week-container-transition show"></div>
     </div>
     <div id="event-modal" class="modal hidden">

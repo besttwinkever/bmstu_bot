@@ -2,11 +2,23 @@ Django
 django_extensions
 djangorestframework
 icalendar
-redis
-django-redis
 psycopg2-binary
-pyTelegramBotAPI
-celery
-dotenv
+python-dotenv
 django-jazzmin
 pytz
+
+# Messaging adapters
+pyTelegramBotAPI
+vk_api
+requests
+
+# Background tasks
+celery
+redis
+
+# File format extraction for plagiarism
+python-docx
+pypdf
+
+# Plagiarism BERT model
+sentence-transformers

@@ -2,17 +2,10 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-import threading  # Для запуска бота в отдельном потоке
-from bot_app.telegram_bot import start_bot
-from django.core.cache import cache
 
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bauman_event_tg_bot.settings')
-
-    # Запуск бота в отдельном потоке
-    bot_thread = threading.Thread(target=start_bot, daemon=True)
-    bot_thread.start()
 
     try:
         from django.core.management import execute_from_command_line

@@ -35,7 +35,10 @@ function formatDateYYYYMMDD(date) {
 
 function loadWeekEvents() {
     currentDate.setHours(0, 0, 0, 0);
-    const tgid = new URLSearchParams(window.location.search).get('tgid');
+    const params = new URLSearchParams(window.location.search);
+    const tgid = params.get('tgid');
+    const uid = params.get('uid') || tgid;
+    const platform = params.get('platform') || (tgid ? 'telegram' : '');
     const days = getWeekDays(currentDate);
 
     document.getElementById('current-week').textContent =
@@ -49,7 +52,7 @@ function loadWeekEvents() {
 
     // 🔹 Ждём завершения скрытия и только потом перерисовываем
     setTimeout(() => {
-        fetch(`/api/calendar/events/?tgid=${tgid}&start=${startDate}&end=${endDate}`)
+        fetch(`/bot-app/api/calendar/events/?uid=${encodeURIComponent(uid || '')}&platform=${encodeURIComponent(platform)}&start=${startDate}&end=${endDate}`)
             .then(res => res.json())
             .then(data => {
                 weekContainer.innerHTML = ''; // очистить старое
@@ -136,12 +139,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('download-ics').addEventListener('click', () => {
-        const tgid = new URLSearchParams(window.location.search).get('tgid');
+        const params = new URLSearchParams(window.location.search);
+        const tgid = params.get('tgid');
+        const uid = params.get('uid') || tgid;
+        const platform = params.get('platform') || (tgid ? 'telegram' : '');
         const days = getWeekDays(currentDate);
         const start = formatDateYYYYMMDD(days[0]);
         const end = formatDateYYYYMMDD(new Date(days[6].getTime() + 86400000)); // +1 день
         document.getElementById("debug-log").textContent = `start=${start}, end=${end}`;
-        const url = `/api/calendar/export_ics/?tgid=${tgid}&start=${start}&end=${end}`;
+        const url = `/api/calendar/export_ics/?uid=${encodeURIComponent(uid || '')}&platform=${encodeURIComponent(platform)}&start=${start}&end=${end}`;
         window.open(url, '_blank');
     });
 

@@ -1,0 +1,231 @@
+{% extends 'teacher/base.html' %}
+
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col-md-6">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'teacher_panel' %}">Дисциплины</a></li>
+                <li class="breadcrumb-item active">{{ discipline.name }}</li>
+            </ol>
+        </nav>
+        <h2 class="mt-2">Работы студентов</h2>
+    </div>
+    <div class="col-md-6 text-end">
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'manage_notifications' discipline.pk %}" class="btn btn-outline-primary">Уведомления</a>
+            <a href="{% url 'manage_assignments' discipline.pk %}" class="btn btn-outline-dark">Настройки заданий</a>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Студент</label>
+                <input type="text" name="student" class="form-control"
+                       placeholder="ФИО или логин"
+                       value="{{ current_student|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Тип работы</label>
+                <select name="type" class="form-select">
+                    <option value="">Все типы</option>
+                    {% for st in submission_types %}
+                        <option value="{{ st.pk }}" {% if current_type == st.pk %}selected{% endif %}>
+                            {{ st.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Статус</label>
+                <select name="status" class="form-select">
+                    <option value="">Все</option>
+                    {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if current_status == code %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Срок сдачи</label>
+                <select name="date_filter" class="form-select">
+                    <option value="">Все</option>
+                    <option value="ontime" {% if current_date_filter == 'ontime' %}selected{% endif %}>Вовремя</option>
+                    <option value="overdue" {% if current_date_filter == 'overdue' %}selected{% endif %}>Просроченные</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Применить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Студент</th>
+                        <th>Тип работы</th>
+                        <th>Дата загрузки</th>
+                        <th>Статус</th>
+                        <th>Антиплагиат</th>
+                        <th>Файл</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in submissions %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ submission.user.get_full_name }}</div>
+                            <small class="text-muted">{{ submission.user.email }}</small>
+                        </td>
+                        <td>
+                            <div>{{ submission.submission_type.name }}</div>
+                            {% if submission.submission_type.deadline %}
+                                <small class="text-muted">Срок: {{ submission.submission_type.deadline|date:"d.m H:i" }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ submission.created_at|date:"d.m.Y H:i" }}
+                            {% if submission.is_late %}
+                                <br><span class="badge bg-danger rounded-pill">Опоздание</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if submission.status == 'none' %}
+                                <span class="badge bg-warning text-dark">На проверке</span>
+                            {% elif submission.status == 'check_passed' %}
+                                <span class="badge bg-info">Проверено</span>
+                            {% elif submission.status == 'done' %}
+                                <span class="badge bg-success">Принято</span>
+                            {% elif submission.status == 'check_failed' %}
+                                <span class="badge bg-danger">Отклонено</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% with report=submission.plagiarism_report %}
+                                {% if report %}
+                                    {% if report.verdict == 'pending' %}
+                                        <span class="badge bg-secondary">В очереди</span>
+                                    {% elif report.verdict == 'unsupported' %}
+                                        <span class="badge bg-light text-dark" title="{{ report.details }}">Не проверено (формат)</span>
+                                    {% elif report.verdict == 'error' %}
+                                        <span class="badge bg-warning text-dark" title="{{ report.details }}">Ошибка</span>
+                                    {% else %}
+                                        {% if report.verdict == 'original' %}
+                                            <span class="badge bg-success"
+                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}%">
+                                                Оригинал · {{ report.final_score|floatformat:1 }}%
+                                            </span>
+                                        {% elif report.verdict == 'suspicious' %}
+                                            <span class="badge bg-warning text-dark"
+                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}% (победил: {{ report.winning_method }})">
+                                                Рерайт · {{ report.final_score|floatformat:1 }}%
+                                            </span>
+                                        {% elif report.verdict == 'plagiarism' %}
+                                            <span class="badge bg-danger"
+                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}% (победил: {{ report.winning_method }})">
+                                                Плагиат · {{ report.final_score|floatformat:1 }}%
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if report.matched_with and report.verdict != 'original' %}
+                                        {% with matched=report.matched_with %}
+                                        <div class="small mt-1">
+                                            Совпадение с
+                                            <a href="{% url 'download_submission' matched.submission_id %}"
+                                               title="Скачать совпавшую работу">
+                                                {{ matched.user.get_full_name|default:matched.user.username }}
+                                            </a>
+                                            <div class="text-muted" style="font-size: 0.85em;">
+                                                {{ matched.submission_type.name }}
+                                                {% if matched.submission_type.discipline_id != discipline.pk %}
+                                                    ({{ matched.submission_type.discipline.name }})
+                                                {% endif %}
+                                                · {{ matched.created_at|date:"d.m.Y H:i" }}
+                                            </div>
+                                        </div>
+                                        {% endwith %}
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% if submission.file %}
+                                <a href="{% url 'download_submission' submission.submission_id %}" class="btn btn-sm btn-outline-primary">
+                                    Скачать
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Нет файла</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#gradeModal{{ submission.submission_id }}">
+                                    Оценить
+                                </button>
+                            </div>
+
+                            <!-- Modal -->
+                            <div class="modal fade" id="gradeModal{{ submission.submission_id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="post" action="{% url 'update_submission' submission.submission_id %}">
+                                            {% csrf_token %}
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Оценка работы</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Студент:</strong> {{ submission.user.get_full_name }}</p>
+                                                <p><strong>Работа:</strong> {{ submission.submission_type.name }}</p>
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label">Статус</label>
+                                                    <select name="status" class="form-select">
+                                                        {% for code, label in status_choices %}
+                                                            <option value="{{ code }}" {% if submission.status == code %}selected{% endif %}>
+                                                                {{ label }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label">Комментарий</label>
+                                                    <textarea name="comment" class="form-control" rows="3">{{ submission.status_text|default:'' }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                                <button type="submit" class="btn btn-primary">Сохранить</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            Нет работ с выбранными параметрами
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

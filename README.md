@@ -17,6 +17,28 @@ pip install bmstu_oauth  -i https://public:public@projects.iu5.bmstu.ru/reposito
 | DB_PORT                           | Порт базы                            | 5432         |
 
 
+## Debug-режим бота без OAuth
+
+Для локальной отладки можно включить режим, в котором бот автоматически
+подставляет тестового пользователя вместо авторизации через сайт.
+
+Добавьте в `.env`:
+
+```env
+DEBUG=True
+BOT_DEBUG_BYPASS_AUTH=True
+BOT_DEBUG_USER_USERNAME=debug_student
+BOT_DEBUG_USER_PASSWORD=ChangeMe123!
+BOT_DEBUG_USER_GROUP=Студент
+BOT_DEBUG_ACADEMIC_GROUP=Демо учебная группа
+BOT_DEBUG_USER_FIRST_NAME=Debug
+BOT_DEBUG_USER_LAST_NAME=User
+```
+
+Важно: bypass работает только при одновременном выполнении двух условий:
+`DEBUG=True` и `BOT_DEBUG_BYPASS_AUTH=True`.
+
+
 # Создание админа(ов)
 
 Команда django: 

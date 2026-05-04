@@ -1,0 +1,117 @@
+{% extends 'teacher/base.html' %}
+
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'teacher_panel' %}">Дисциплины</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'discipline_submissions' discipline.pk %}">{{ discipline.name }}</a></li>
+                <li class="breadcrumb-item active">Уведомления</li>
+            </ol>
+        </nav>
+        <h2 class="mt-2">Уведомления группы</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">Новое уведомление</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Текст сообщения</label>
+                        <textarea name="text" class="form-control" rows="5" required></textarea>
+                        <div class="form-text">Сообщение будет отправлено всем студентам, записанным на курс.</div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_delayed" name="is_delayed">
+                        <label class="form-check-label" for="is_delayed">Отложить отправку</label>
+                    </div>
+
+                    <div class="mb-3" id="schedule-container" style="display: none;">
+                        <label class="form-label">Дата и время отправки</label>
+                        <input type="datetime-local" name="scheduled_at" id="scheduled_at" class="form-control">
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Отправить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">История уведомлений</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for notification in notifications %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-truncate" style="max-width: 60%;">{{ notification.text }}</h6>
+                            <small class="text-muted">{{ notification.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <p class="mb-1 text-break">{{ notification.text }}</p>
+                        <div class="mt-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                {% if notification.is_sent %}
+                                    <span class="badge bg-success">Отправлено</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Запланировано: {{ notification.scheduled_at|date:"d.m.Y H:i" }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if not notification.is_sent %}
+                            <form method="post" onsubmit="return confirm('Вы уверены, что хотите отменить это уведомление?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="notification_id" value="{{ notification.pk }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Отменить</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="list-group-item text-center text-muted py-4">
+                        История сообщений пуста
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkbox = document.getElementById('is_delayed');
+        const container = document.getElementById('schedule-container');
+        const input = document.getElementById('scheduled_at');
+
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                container.style.display = 'block';
+                input.required = true;
+                
+                // Set default time to now + 5 mins if empty
+                if (!input.value) {
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 5);
+                    input.value = now.toISOString().slice(0, 16);
+                }
+            } else {
+                container.style.display = 'none';
+                input.required = false;
+                input.value = '';
+            }
+        });
+    });
+</script>
+{% endblock %}

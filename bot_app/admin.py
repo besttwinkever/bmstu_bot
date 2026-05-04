@@ -1,10 +1,57 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.models import Group
 from oauth.models import OauthUser
 
 from bot_app.models import TgUser, Discipline, BotCommand
+from bot_app.services.auth import AuthService
 
-# Register your models here.
-admin.site.register(TgUser)
-admin.site.register(OauthUser)
-admin.site.register(Discipline)
-admin.site.register(BotCommand)
+@admin.register(TgUser)
+class TgUserAdmin(admin.ModelAdmin):
+	list_display = ('user', 'platform', 'messenger_id')
+	list_filter = ('platform',)
+	search_fields = (
+		'user__username', 'user__first_name', 'user__last_name',
+		'messenger_id',
+	)
+
+
+@admin.register(BotCommand)
+class BotCommandAdmin(admin.ModelAdmin):
+	list_display = ('name', 'description')
+	filter_horizontal = ('applicable_groups',)
+	search_fields = ('name', 'description')
+
+
+# OauthUser должен идти под полноценным UserAdmin
+try:
+	admin.site.unregister(OauthUser)
+except admin.sites.NotRegistered:
+	pass
+
+
+@admin.register(OauthUser)
+class OauthUserAdmin(DjangoUserAdmin):
+	pass
+
+
+@admin.register(Discipline)
+class DisciplineAdmin(admin.ModelAdmin):
+	list_display = ('name', 'teachers_list', 'groups_list')
+	search_fields = ('name',)
+	filter_horizontal = ('teachers', 'groups')
+
+	def teachers_list(self, obj):
+		return ', '.join(t.get_full_name() or t.username for t in obj.teachers.all()) or '—'
+	teachers_list.short_description = 'Преподаватели'
+
+	def groups_list(self, obj):
+		return ', '.join(g.name for g in obj.groups.all()) or '—'
+	groups_list.short_description = 'Учебные группы'
+
+	def formfield_for_manytomany(self, db_field, request, **kwargs):
+		if db_field.name == 'groups':
+			kwargs['queryset'] = Group.objects.exclude(
+				name__in=AuthService.role_group_names()
+			).order_by('name')
+		return super().formfield_for_manytomany(db_field, request, **kwargs)
