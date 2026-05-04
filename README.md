@@ -1,10 +1,7 @@
 # Установка
 1. Для работы требуется библиотека [bmstu_oauth](https://gitlab.bmstu.ru).
-```python
-pip install bmstu_oauth  -i https://public:public@projects.iu5.bmstu.ru/repository/pip_all/simple
-```
 
-2. Созать **.env** файл
+2. Настроить **.env** файл
 
 | Название                          | Обозначение                          | По-умолчанию |
 |-----------------------------------|--------------------------------------|--------------|

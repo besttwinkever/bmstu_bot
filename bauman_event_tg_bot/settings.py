@@ -135,8 +135,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'oauth.OauthUser'
 
 # --- Celery --------------------------------------------------------------
-# Если Redis недоступен — можно поднять брокер "memory://" и
-# CELERY_TASK_ALWAYS_EAGER=True, тогда задачи исполняются синхронно.
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'memory://')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'cache+memory://')
 CELERY_ACCEPT_CONTENT = ['json']
