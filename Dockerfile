@@ -21,9 +21,12 @@ RUN pip install bmstu_oauth -i https://public:public@projects.iu5.bmstu.ru/repos
 # Copy project
 COPY . .
 
-# Entrypoint
+# Entrypoint. Срезаем возможные CRLF — иначе на Windows-чекаутах
+# shebang #!/bin/sh\r ломает запуск контейнера ("no such file or directory"
+# при exec entrypoint.sh).
 COPY entrypoint.sh /usr/src/app/entrypoint.sh
-RUN chmod +x /usr/src/app/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/src/app/entrypoint.sh \
+    && chmod +x /usr/src/app/entrypoint.sh
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 

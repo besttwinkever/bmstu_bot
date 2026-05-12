@@ -6,10 +6,11 @@ from dataclasses import dataclass
 from typing import Iterable, Optional
 
 from django.conf import settings
+from django.db.models import Q
 
 from bot_send_file.models import Submission
 
-from .bert import semantic_similarity
+from .bert import encode_chunks, similarity_from_embeddings
 from .extractors import UnsupportedFormat, extract_text
 from .models import PlagiarismReport, Verdict
 from .shingles import jaccard_similarity
@@ -60,17 +61,22 @@ def _candidate_submissions(submission: Submission) -> Iterable[Submission]:
     """Прошлые работы по той же дисциплине от других студентов.
 
     Why: сравниваем по дисциплине (а не только по типу), чтобы ловить
-    переиспользование текста между смежными работами. Только submissions
-    с created_at < нашего — иначе оригиналом становится тот, кто пришёл
-    вторым. Кандидаты, помеченные как копия ранних работ того же автора,
-    исключаются — это производное от собственного текста.
+    переиспользование текста между смежными работами. «Раньше нашей»
+    определяем по (created_at, pk) — на одинаковых таймстампах
+    (массовая загрузка, миграция) PK служит tiebreaker'ом: оригиналом
+    считается работа с меньшим pk. Кандидаты, помеченные как копия
+    ранних работ того же автора, исключаются — это производное от
+    собственного текста.
     """
     discipline = submission.submission_type.discipline
+    earlier = (
+        Q(created_at__lt=submission.created_at)
+        | Q(created_at=submission.created_at, pk__lt=submission.pk)
+    )
     qs = (
         Submission.objects
         .filter(submission_type__discipline=discipline)
-        .exclude(pk=submission.pk)
-        .filter(created_at__lt=submission.created_at)
+        .filter(earlier)
         .select_related('user', 'submission_type', 'plagiarism_report')
     )
 
@@ -86,9 +92,8 @@ def _candidate_submissions(submission: Submission) -> Iterable[Submission]:
             .filter(
                 user=submission.user,
                 submission_type__discipline=discipline,
-                created_at__lt=submission.created_at,
             )
-            .exclude(pk=submission.pk)
+            .filter(earlier)
             .values_list('pk', flat=True)
         )
         if own_earlier_pks:
@@ -98,22 +103,16 @@ def _candidate_submissions(submission: Submission) -> Iterable[Submission]:
 
 
 def _read_text(submission: Submission) -> Optional[str]:
+    """Извлечь текст из файла submission. None — если файла нет/он пуст."""
     if not submission.file:
         return None
     try:
-        data = submission.file.read()
+        with submission.file.open('rb') as fp:
+            data = fp.read()
     except FileNotFoundError:
         logger.warning('Submission file missing: %s', submission.file.name)
         return None
-    finally:
-        try:
-            submission.file.close()
-        except Exception:
-            pass
-    try:
-        return extract_text(submission.file.name, data)
-    except UnsupportedFormat:
-        raise
+    return extract_text(submission.file.name, data)
 
 
 def check_submission(submission: Submission) -> PlagiarismReport:
@@ -122,18 +121,54 @@ def check_submission(submission: Submission) -> PlagiarismReport:
     report, _ = PlagiarismReport.objects.get_or_create(submission=submission)
 
     try:
+        return _run_check(submission, report, cfg)
+    except Exception:
+        logger.exception('Plagiarism check failed for submission %s', submission.pk)
+        report.verdict = Verdict.ERROR
+        report.details = 'Внутренняя ошибка проверки. Обратитесь к администратору.'
+        report.shingle_score = None
+        report.bert_score = None
+        report.matched_with = None
+        report.save()
+        return report
+
+
+def _set_unsupported(report: PlagiarismReport, details: str) -> None:
+    """Сбрасываем агрегаты — иначе при повторном запуске остаются прошлые."""
+    report.verdict = Verdict.UNSUPPORTED
+    report.details = details
+    report.shingle_score = None
+    report.bert_score = None
+    report.matched_with = None
+
+
+def _run_check(
+    submission: Submission,
+    report: PlagiarismReport,
+    cfg: PlagiarismConfig,
+) -> PlagiarismReport:
+    try:
         suspect_text = _read_text(submission)
     except UnsupportedFormat as exc:
-        report.verdict = Verdict.UNSUPPORTED
-        report.details = str(exc)
+        _set_unsupported(report, str(exc))
+        report.save()
+        return report
+    except Exception as exc:
+        # Битый docx/pdf, нечитаемая кодировка txt — пишем в отчёт,
+        # но не валим всю проверку (см. ERROR-обёртку в check_submission).
+        logger.exception('Failed to read suspect file for submission %s', submission.pk)
+        _set_unsupported(report, f'Не удалось прочитать файл работы: {exc}')
         report.save()
         return report
 
     if not suspect_text or not suspect_text.strip():
-        report.verdict = Verdict.UNSUPPORTED
-        report.details = 'Текст не извлечён (пустой файл или неподдерживаемый формат)'
+        _set_unsupported(report, 'Текст не извлечён (пустой файл или неподдерживаемый формат).')
         report.save()
         return report
+
+    # Эмбеддинги суспект-текста кодируются один раз и переиспользуются
+    # на каждом кандидате — иначе на крупном курсе тратим минуты впустую.
+    suspect_embedding = None
 
     best: Optional[Match] = None
     for candidate in _candidate_submissions(submission):
@@ -141,15 +176,40 @@ def check_submission(submission: Submission) -> PlagiarismReport:
             original_text = _read_text(candidate)
         except UnsupportedFormat:
             continue
+        except Exception:
+            # Битый файл одного кандидата не должен ронять всю проверку:
+            # пропускаем его, остальные кандидаты остаются в оценке.
+            logger.warning(
+                'Skipping candidate submission %s due to read error',
+                candidate.pk, exc_info=True,
+            )
+            continue
         if not original_text:
             continue
 
         shingle_score = jaccard_similarity(original_text, suspect_text, cfg.shingle_size)
-        # Если шинглы уже за порогом плагиата — BERT не изменит max(), пропускаем.
+
         if shingle_score >= cfg.plagiarism_threshold:
+            # Шинглы уже дали потолок — BERT не повысит max(), экономим.
+            bert_score = 0.0
+        elif shingle_score < cfg.shingle_prefilter:
+            # Дешёвый префильтр: при очень слабом совпадении по шинглам
+            # вероятность семантического совпадения невелика, BERT не запускаем.
             bert_score = 0.0
         else:
-            bert_score = semantic_similarity(original_text, suspect_text, cfg.bert_threshold)
+            if suspect_embedding is None:
+                suspect_embedding = encode_chunks(suspect_text)
+            try:
+                candidate_embedding = encode_chunks(original_text)
+                bert_score = similarity_from_embeddings(
+                    suspect_embedding, candidate_embedding, cfg.bert_threshold
+                )
+            except Exception:
+                logger.warning(
+                    'BERT similarity failed for candidate %s', candidate.pk,
+                    exc_info=True,
+                )
+                bert_score = 0.0
 
         match = Match(candidate, shingle_score, bert_score)
         if best is None or match.final_score > best.final_score:
@@ -159,7 +219,7 @@ def check_submission(submission: Submission) -> PlagiarismReport:
         report.shingle_score = 0.0
         report.bert_score = 0.0
         report.verdict = Verdict.ORIGINAL
-        report.details = 'Нет подходящих работ для сравнения'
+        report.details = 'Нет подходящих работ для сравнения.'
         report.matched_with = None
     else:
         report.shingle_score = best.shingle_score
@@ -167,12 +227,16 @@ def check_submission(submission: Submission) -> PlagiarismReport:
         report.verdict = _verdict_for(best.final_score, cfg)
         if report.verdict == Verdict.ORIGINAL:
             report.matched_with = None
-            report.details = 'Совпадений выше порога не найдено'
+            report.details = 'Совпадений выше порога не найдено.'
         else:
             report.matched_with = best.submission
+            author = (
+                best.submission.user.get_full_name()
+                or best.submission.user.username
+            )
             report.details = (
                 f'Сравнение с работой {best.submission.submission_id} '
-                f'(автор: {best.submission.user.get_full_name() or best.submission.user.username})'
+                f'(автор: {author}).'
             )
 
     report.save()

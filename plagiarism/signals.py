@@ -21,16 +21,19 @@ def _enqueue_plagiarism_check(sender, instance: Submission, created: bool, **kwa
     if not created:
         return
 
-    PlagiarismReport.objects.get_or_create(
-        submission=instance,
-        defaults={'verdict': Verdict.PENDING},
-    )
+    submission_pk = instance.pk
 
-    def _enqueue():
+    def _enqueue() -> None:
+        # Создаём PENDING-отчёт уже после коммита транзакции — иначе при
+        # откате создания submission останется отчёт без работы.
+        PlagiarismReport.objects.get_or_create(
+            submission_id=submission_pk,
+            defaults={'verdict': Verdict.PENDING},
+        )
         try:
-            run_plagiarism_check.delay(instance.pk)
+            run_plagiarism_check.delay(submission_pk)
         except Exception:
             logger.exception('Failed to enqueue plagiarism check; running inline')
-            run_plagiarism_check(instance.pk)
+            run_plagiarism_check(submission_pk)
 
     transaction.on_commit(_enqueue)

@@ -21,11 +21,11 @@
                 <h5 class="card-title mb-0">Новое уведомление</h5>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="notification-form">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label">Текст сообщения</label>
-                        <textarea name="text" class="form-control" rows="5" required></textarea>
+                        <label for="notification-text" class="form-label">Текст сообщения</label>
+                        <textarea name="text" id="notification-text" class="form-control" rows="5" required></textarea>
                         <div class="form-text">Сообщение будет отправлено всем студентам, записанным на курс.</div>
                     </div>
                     
@@ -35,10 +35,17 @@
                     </div>
 
                     <div class="mb-3" id="schedule-container" style="display: none;">
-                        <label class="form-label">Дата и время отправки</label>
+                        <label class="form-label" for="scheduled_at">Дата и время отправки</label>
                         <input type="datetime-local" name="scheduled_at" id="scheduled_at" class="form-control">
+                        <div class="form-text">
+                            Можно указать только будущее время — отложенная отправка
+                            не работает в прошлом.
+                        </div>
+                        <div class="invalid-feedback">
+                            Время отправки должно быть позже текущего.
+                        </div>
                     </div>
-                    
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Отправить</button>
                     </div>
@@ -91,27 +98,53 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('notification-form');
         const checkbox = document.getElementById('is_delayed');
         const container = document.getElementById('schedule-container');
         const input = document.getElementById('scheduled_at');
+
+        // datetime-local понимает min/max в локальном "YYYY-MM-DDTHH:MM" —
+        // блокирует выбор прошлого через нативный календарь браузера.
+        const formatLocal = (date) => {
+            const pad = (n) => String(n).padStart(2, '0');
+            return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' +
+                pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+        };
+        const refreshMin = () => { input.min = formatLocal(new Date()); };
+        refreshMin();
 
         checkbox.addEventListener('change', function() {
             if (this.checked) {
                 container.style.display = 'block';
                 input.required = true;
-                
-                // Set default time to now + 5 mins if empty
+                refreshMin();
                 if (!input.value) {
-                    const now = new Date();
-                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 5);
-                    input.value = now.toISOString().slice(0, 16);
+                    const soon = new Date(Date.now() + 5 * 60 * 1000);
+                    input.value = formatLocal(soon);
                 }
             } else {
                 container.style.display = 'none';
                 input.required = false;
                 input.value = '';
+                input.classList.remove('is-invalid');
             }
         });
+
+        // Серверная валидация уже есть — клиентская тут только для UX,
+        // чтобы не делать round-trip на очевидную ошибку.
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (!checkbox.checked) return;
+                refreshMin();
+                const picked = new Date(input.value);
+                if (Number.isNaN(picked.getTime()) || picked.getTime() <= Date.now() + 60 * 1000) {
+                    event.preventDefault();
+                    input.classList.add('is-invalid');
+                    input.focus();
+                }
+            });
+            input.addEventListener('input', () => input.classList.remove('is-invalid'));
+        }
     });
 </script>
 {% endblock %}

@@ -1,0 +1,5 @@
+# Shell-скрипты и Dockerfile исполняются в Linux-контейнере: им строго
+# нужен LF, иначе шебанг `#!/bin/sh\r` ломает запуск.
+*.sh         text eol=lf
+Dockerfile   text eol=lf
+entrypoint.* text eol=lf

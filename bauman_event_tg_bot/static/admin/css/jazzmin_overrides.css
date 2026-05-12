@@ -1,0 +1,264 @@
+/* Кастомные стили админки для согласования с интерфейсом проекта.
+   Подключаются через JAZZMIN_SETTINGS["custom_css"]. */
+
+:root {
+    --bmstu-primary: #0d6efd;
+    --bmstu-primary-hover: #0b5ed7;
+    --bmstu-primary-active: #0a58ca;
+    --bmstu-border: #ced4da;
+    --bmstu-radius: 6px;
+}
+
+/* ---------- Стартовая страница админки: список приложений ---------- */
+
+/* Между кнопками «Добавить» и «Изменить» по умолчанию нет пробела,
+   они слипаются. Даём им отступ. Также делаем «Добавить» зелёной
+   (success), «Изменить» — синей (primary), чтобы действия читались. */
+.app-list .model a.addlink,
+.app-list a.addlink,
+table.dashboard-list a.addlink {
+    margin-right: 6px;
+    background-color: var(--bmstu-primary) !important;
+    border-color: var(--bmstu-primary) !important;
+    color: #fff !important;
+}
+
+.app-list .model a.changelink,
+.app-list a.changelink,
+table.dashboard-list a.changelink {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+}
+
+.app-list .model a.addlink:hover,
+.app-list a.addlink:hover,
+table.dashboard-list a.addlink:hover {
+    background-color: var(--bmstu-primary-hover) !important;
+    border-color: var(--bmstu-primary-active) !important;
+}
+
+.app-list .model a.changelink:hover,
+.app-list a.changelink:hover,
+table.dashboard-list a.changelink:hover {
+    background-color: #5c636a !important;
+    border-color: #565e64 !important;
+}
+
+/* Внутренний отступ ячейки с кнопками — чтобы они не липли к краю карточки. */
+.app-list td.text-right,
+.app-list .model td.text-right,
+table.dashboard-list td.text-right {
+    padding-right: 12px;
+    white-space: nowrap;
+}
+
+/* ---------- Блок массовых действий (Действие / Выполнить) ---------- */
+
+/* Контейнер выравниваем по центру вертикали и даём ему «дыхание». */
+form#changelist-form .actions,
+.changelist-form .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: var(--bmstu-radius);
+    margin-bottom: 14px;
+}
+
+form#changelist-form .actions label,
+.changelist-form .actions label {
+    margin: 0;
+    font-weight: 500;
+    color: #495057;
+}
+
+/* Селектор «Действие». */
+form#changelist-form .actions select,
+.changelist-form .actions select {
+    height: 38px;
+    padding: 6px 30px 6px 12px;
+    border: 1px solid var(--bmstu-border);
+    border-radius: var(--bmstu-radius);
+    background-color: #fff;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    min-width: 220px;
+}
+
+form#changelist-form .actions select:focus,
+.changelist-form .actions select:focus {
+    outline: none;
+    border-color: var(--bmstu-primary);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+}
+
+/* Кнопка «Выполнить» — primary, такого же размера, как «Найти». */
+form#changelist-form .actions button[type="submit"],
+form#changelist-form .actions button.button,
+.changelist-form .actions button[type="submit"],
+.changelist-form .actions button.button {
+    height: 38px;
+    padding: 0 18px;
+    background-color: var(--bmstu-primary);
+    border: 1px solid var(--bmstu-primary);
+    color: #fff;
+    border-radius: var(--bmstu-radius);
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+form#changelist-form .actions button[type="submit"]:hover,
+form#changelist-form .actions button.button:hover,
+.changelist-form .actions button[type="submit"]:hover,
+.changelist-form .actions button.button:hover {
+    background-color: var(--bmstu-primary-hover);
+    border-color: var(--bmstu-primary-active);
+}
+
+form#changelist-form .actions button[type="submit"]:focus,
+form#changelist-form .actions button.button:focus,
+.changelist-form .actions button[type="submit"]:focus,
+.changelist-form .actions button.button:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.35);
+}
+
+/* «Выделено N из N» — подвинем правее, чтобы не наезжало на кнопку. */
+form#changelist-form .actions .action-counter,
+.changelist-form .actions .action-counter {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-left: auto;
+}
+
+/* ---------- Поисковая строка ---------- */
+
+#toolbar form#changelist-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#toolbar form#changelist-search input[type="text"] {
+    height: 38px;
+    padding: 6px 12px;
+    border: 1px solid var(--bmstu-border);
+    border-radius: var(--bmstu-radius);
+    font-size: 0.95rem;
+}
+
+#toolbar form#changelist-search input[type="text"]:focus {
+    outline: none;
+    border-color: var(--bmstu-primary);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+}
+
+#toolbar form#changelist-search input[type="submit"] {
+    height: 38px;
+    padding: 0 18px;
+    background-color: var(--bmstu-primary);
+    border: 1px solid var(--bmstu-primary);
+    color: #fff;
+    border-radius: var(--bmstu-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+#toolbar form#changelist-search input[type="submit"]:hover {
+    background-color: var(--bmstu-primary-hover);
+    border-color: var(--bmstu-primary-active);
+}
+
+/* ---------- Сайд-панель с фильтрами ---------- */
+
+#changelist-filter {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--bmstu-radius);
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+#changelist-filter h2,
+#changelist-filter h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+#changelist-filter h3 {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: #495057;
+}
+
+#changelist-filter ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 4px;
+}
+
+#changelist-filter li {
+    padding: 4px 0;
+    line-height: 1.4;
+}
+
+#changelist-filter li a {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    color: #495057;
+    text-decoration: none;
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+#changelist-filter li a:hover {
+    background-color: rgba(13, 110, 253, 0.08);
+    color: var(--bmstu-primary);
+}
+
+#changelist-filter li.selected a,
+#changelist-filter li.selected {
+    color: var(--bmstu-primary);
+    font-weight: 600;
+}
+
+#changelist-filter li.selected a {
+    background-color: rgba(13, 110, 253, 0.12);
+}
+
+/* «Очистить все фильтры» */
+#changelist-filter #changelist-filter-clear {
+    margin-top: 10px;
+}
+
+#changelist-filter #changelist-filter-clear a {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* ---------- Прочее ---------- */
+
+.module h2 {
+    font-weight: 500;
+}
+
+/* Кнопки сохранения внизу формы — приводим к Bootstrap-виду. */
+.submit-row input[type="submit"] {
+    border-radius: var(--bmstu-radius);
+    padding: 8px 18px;
+    font-weight: 500;
+}

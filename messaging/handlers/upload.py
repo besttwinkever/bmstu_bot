@@ -4,12 +4,12 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from bot_app.services.auth import AuthenticatedUser, AuthService
+from bot_app.services.auth import AuthService
 from bot_send_file.services import SubmissionNotAllowed, SubmissionService
-from bot_send_file.validators import FileValidationError
+from bot_send_file.validators import FileValidator, FileValidationError
 
 from ..constants import ButtonLabel, CallbackData, FSMState
-from ..contracts import Keyboard, KeyboardButton, KeyboardType
+from ..contracts import Keyboard, KeyboardButton
 from ..dispatcher import Dispatcher
 from ..fsm import fsm
 from ..platform import Context
@@ -225,6 +225,15 @@ def _handle_file(ctx: Context) -> None:
     file = ctx.event.file
     if file is None:
         ctx.reply('Пожалуйста, прикрепите файл.')
+        return
+
+    # Сначала валидируем по метаданным, ПОТОМ читаем содержимое.
+    # Иначе злоумышленник присылает файл на 500 МБ, и хотя SubmissionService
+    # его отклонит, бот успеет прочитать всё в память — DoS.
+    try:
+        FileValidator(submission_type).validate(file.file_name, file.size)
+    except FileValidationError as exc:
+        ctx.reply(f'Файл не принят: {exc}')
         return
 
     ctx.reply('Файл загружается, пожалуйста подождите...', remove_keyboard=True)

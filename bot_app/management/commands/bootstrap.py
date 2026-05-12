@@ -1,18 +1,46 @@
-from django.contrib.auth.models import User, Group
+"""Создаёт администраторов с дефолтным паролем по списку username'ов.
+
+    python manage.py bootstrap имя1,имя2,...
+
+Используется один раз при первом развёртывании. Существующие пользователи
+не перезаписываются — только сообщается, что они уже есть.
+"""
+from __future__ import annotations
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
+
 from oauth.models import OauthUser
 
 
+DEFAULT_PASSWORD = 'ChangeMe123!'
+
+
 class Command(BaseCommand):
-    help = 'Bootstrapping database with necessary items'
+    help = 'Создаёт администраторов Django с дефолтным паролем (ChangeMe123!).'
 
     def add_arguments(self, parser):
-        parser.add_argument('admins', type=str, help='coma-separated list of admins to create')
+        parser.add_argument(
+            'admins',
+            type=str,
+            help='Список username администраторов через запятую.',
+        )
 
-    @transaction.atomic()
+    @transaction.atomic
     def handle(self, *args, **options):
-        for username in options['admins'].split(','):
-            if not OauthUser.objects.filter(username=username).exists():
-                print(f'Creating new admins {username}')
-                user = OauthUser.objects.create_user(username, password="ChangeMe123!", is_staff=True, is_superuser=True)
+        usernames = [name.strip() for name in options['admins'].split(',') if name.strip()]
+        for username in usernames:
+            if OauthUser.objects.filter(username=username).exists():
+                self.stdout.write(self.style.WARNING(
+                    f'Пользователь «{username}» уже существует — пропускаю.'
+                ))
+                continue
+            OauthUser.objects.create_user(
+                username,
+                password=DEFAULT_PASSWORD,
+                is_staff=True,
+                is_superuser=True,
+            )
+            self.stdout.write(self.style.SUCCESS(
+                f'Создан администратор «{username}» (пароль: {DEFAULT_PASSWORD}).'
+            ))

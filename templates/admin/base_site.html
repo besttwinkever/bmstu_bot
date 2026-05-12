@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{# Жёстко зашиваем заголовок панели — иначе локаль Django/Jazzmin может
+   подставить «Site administration» → «Админпанель» (слитно). #}
+
+{% block title %}{{ title }} | Панель администратора{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">Панель администратора</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

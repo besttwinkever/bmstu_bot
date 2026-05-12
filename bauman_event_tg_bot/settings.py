@@ -151,7 +151,14 @@ VK_GROUP_ID = int(os.getenv('VK_GROUP_ID', '0') or '0')
 
 # Debug-bypass для локальной разработки бота.
 # Включается только если одновременно DEBUG=True и BOT_DEBUG_BYPASS_AUTH=True.
+# В production такая комбинация = критическая дыра: bypass даёт авто-логин
+# и расслабляет правила антиплагиата (см. plagiarism/service._candidate_submissions).
 BOT_DEBUG_BYPASS_AUTH = os.getenv('BOT_DEBUG_BYPASS_AUTH', 'False') == 'True'
+if not DEBUG and BOT_DEBUG_BYPASS_AUTH:
+    raise RuntimeError(
+        'BOT_DEBUG_BYPASS_AUTH=True запрещён при DEBUG=False — '
+        'это полностью отключает аутентификацию.'
+    )
 BOT_DEBUG_USER_USERNAME = os.getenv('BOT_DEBUG_USER_USERNAME', 'debug_student')
 BOT_DEBUG_USER_PASSWORD = os.getenv('BOT_DEBUG_USER_PASSWORD', 'ChangeMe123!')
 BOT_DEBUG_USER_GROUP = os.getenv('BOT_DEBUG_USER_GROUP', 'Студент')
@@ -168,10 +175,19 @@ PLAGIARISM_SUSPICIOUS_THRESHOLD = float(os.getenv('PLAGIARISM_SUSPICIOUS_THRESHO
 PLAGIARISM_PLAGIARISM_THRESHOLD = float(os.getenv('PLAGIARISM_PLAGIARISM_THRESHOLD', '70.0'))
 
 # Security
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_PROXY_SSL_HEADER включаем только когда явно стоим за reverse-proxy:
+# иначе клиент сам может прислать X-Forwarded-Proto: https и обмануть Django.
+if os.getenv('USE_PROXY_SSL_HEADER', 'False') == 'True':
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'
 SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False') == 'True'
 CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False') == 'True'
+
+if not DEBUG and SECRET_KEY.startswith('django-insecure-'):
+    raise RuntimeError(
+        'SECRET_KEY обязателен в production: задайте переменную окружения '
+        'SECRET_KEY длинной случайной строкой.'
+    )
 
 CORS_ALLOW_HEADERS = [
     'x-telegram-webapp-data',
@@ -225,14 +241,15 @@ LOGOUT_REDIRECT_URL = '/teacher/login/'
 
 # Jazzmin settings
 JAZZMIN_SETTINGS = {
-    'site_title': 'Админ-панель',
-    'site_header': 'Админ-панель',
-    'site_brand': 'МГТУ ИУ5',
-    'welcome_sign': 'Добро пожаловать в админ-панель',
+    'site_title': 'Панель администратора',
+    'site_header': 'Панель администратора',
+    'site_brand': 'Панель администратора',
+    'welcome_sign': 'Добро пожаловать в панель администратора',
     'copyright': 'МГТУ ИУ5',
     'order_with_respect_to': [
         'oauth', 'bot_app', 'bot_send_file', 'plagiarism', 'auth',
     ],
+    'custom_css': 'admin/css/jazzmin_overrides.css',
     'icons': {
         'auth.Group': 'fas fa-users',
         'oauth.OauthUser': 'fas fa-user',
@@ -244,5 +261,21 @@ JAZZMIN_SETTINGS = {
         'bot_send_file.SubmissionType': 'fas fa-tasks',
         'bot_send_file.Submission': 'fas fa-file-upload',
         'plagiarism.PlagiarismReport': 'fas fa-search',
+    },
+}
+
+# Минимальный набор UI-настроек: оставляем дефолтные (синие) цвета Jazzmin,
+# тему flatly не используем — она бирюзовая и расходится с Bootstrap-синью
+# преподавательской панели. Дополнительная стилизация — в jazzmin_overrides.css.
+JAZZMIN_UI_TWEAKS = {
+    'no_navbar_border': True,
+    'sidebar_nav_small_text': False,
+    'button_classes': {
+        'primary': 'btn-primary',
+        'secondary': 'btn-secondary',
+        'info': 'btn-info',
+        'warning': 'btn-warning',
+        'danger': 'btn-danger',
+        'success': 'btn-success',
     },
 }

@@ -26,6 +26,7 @@ from django.utils import timezone
 
 from bot_app.models import Discipline
 from bot_send_file.models import Submission, SubmissionType
+from bot_send_file.services.submission import sanitize_path_component
 
 
 DEFAULT_PASSWORD = 'Secret123'
@@ -144,9 +145,11 @@ class Command(BaseCommand):
         file_name, text = TEXTS.get(user.username, (f'{user.username}.txt', 'Демо-работа.'))
         rel_dir = os.path.join(
             'submissions',
-            submission_type.discipline.name.replace(' ', '_'),
-            submission_type.name.replace(' ', '_'),
-            (user.get_full_name() or user.username).replace(' ', '_'),
+            sanitize_path_component(submission_type.discipline.name, 'discipline'),
+            sanitize_path_component(submission_type.name, 'assignment'),
+            sanitize_path_component(
+                user.get_full_name() or user.username, 'user',
+            ),
         )
         abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
         os.makedirs(abs_dir, exist_ok=True)

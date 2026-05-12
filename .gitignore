@@ -110,3 +110,5 @@ static_collected
 .vscode/settings.json
 
 .submissions
+# Claude Code worktrees / artefacts
+.claude/

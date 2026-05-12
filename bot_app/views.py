@@ -6,6 +6,7 @@ import logging
 
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import TemplateHTMLRenderer
@@ -88,11 +89,27 @@ def auth_success(request):
     return render(request, 'success_page.html', {'data': data})
 
 
+def _resolve_messenger_id(request) -> str | None:
+    return request.GET.get('uid') or request.GET.get('tgid')
+
+
+def _resolve_platform(request) -> str:
+    return (request.GET.get('platform') or Platform.TELEGRAM).lower()
+
+
+# XXX: API ниже доверяет messenger_id, переданному в GET-параметре. В
+# Telegram WebApp правильное решение — валидация подписи initData
+# (HMAC-SHA256 на bot token) — но эта инфраструктура не настроена.
+# Полученные через эндпойнт данные минимальны (расписание дисциплины,
+# в которой состоит пользователь), но enumeration по messenger_id
+# теоретически возможна. Перед production обязательно добавить
+# проверку Telegram WebApp signature.
+
+
 @csrf_exempt
 def calendar_mini_app(request):
-    telegram_id = request.GET.get('tgid')
-    messenger_id = request.GET.get('uid') or telegram_id
-    platform = (request.GET.get('platform') or Platform.TELEGRAM).lower()
+    messenger_id = _resolve_messenger_id(request)
+    platform = _resolve_platform(request)
     user_info: dict = {}
 
     if messenger_id:
@@ -108,9 +125,8 @@ def calendar_mini_app(request):
 
 @csrf_exempt
 def get_calendar_events(request):
-    telegram_id = request.GET.get('tgid')
-    messenger_id = request.GET.get('uid') or telegram_id
-    platform = (request.GET.get('platform') or Platform.TELEGRAM).lower()
+    messenger_id = _resolve_messenger_id(request)
+    platform = _resolve_platform(request)
     start_str = request.GET.get('start')
     end_str = request.GET.get('end')
 
@@ -119,7 +135,7 @@ def get_calendar_events(request):
 
     user = AuthService.find_by_messenger_id(platform, messenger_id)
     if user is None:
-        return JsonResponse({'error': 'User not found'}, status=404)
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
 
     events = []
     if start_str and end_str:
@@ -128,6 +144,12 @@ def get_calendar_events(request):
             end = datetime.datetime.strptime(end_str, '%Y-%m-%d')
         except ValueError:
             return JsonResponse({'events': []})
+
+        # USE_TZ=True → CalendarService сравнивает с aware-датами, naive
+        # сейчас даст RuntimeWarning и сдвиг на TIME_ZONE-смещение.
+        tz = timezone.get_current_timezone()
+        start = timezone.make_aware(start, tz)
+        end = timezone.make_aware(end, tz)
 
         for event in CalendarService.events_between(user.oauth_user, start, end):
             events.append({
