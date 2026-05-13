@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Optional
 
 from .dispatcher import Dispatcher
@@ -22,6 +23,9 @@ _BOT_COMMANDS = [
     ('menu', 'Список доступных команд'),
     ('whoami', 'Статус пользователя'),
 ]
+
+_RESTART_BASE_DELAY = 2
+_RESTART_MAX_DELAY = 60
 
 
 def build_dispatcher(platform: Optional[MessagingPlatform] = None) -> Dispatcher:
@@ -40,4 +44,15 @@ def run() -> None:
     except Exception:
         logger.warning('Failed to set bot commands', exc_info=True)
     build_dispatcher(platform)
-    platform.run()
+
+    delay = _RESTART_BASE_DELAY
+    while True:
+        try:
+            platform.run()
+        except KeyboardInterrupt:
+            logger.info('Bot stopped by user')
+            return
+        except Exception:
+            logger.exception('Bot crashed, restarting in %ds…', delay)
+            time.sleep(delay)
+            delay = min(delay * 2, _RESTART_MAX_DELAY)

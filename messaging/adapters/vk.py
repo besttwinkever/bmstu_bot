@@ -117,13 +117,36 @@ class VKAdapter(MessagingPlatform):
     def on_file(self, handler: EventHandler) -> None:
         self._file_handlers.append(handler)
 
+    _RECONNECT_BASE_DELAY = 1
+    _RECONNECT_MAX_DELAY = 60
+
     def run(self) -> None:
         logger.info('VK bot LongPoll started')
-        for event in self._longpoll.listen():
+        delay = self._RECONNECT_BASE_DELAY
+        while True:
             try:
-                self._dispatch(event)
+                for event in self._longpoll.listen():
+                    delay = self._RECONNECT_BASE_DELAY
+                    try:
+                        self._dispatch(event)
+                    except Exception:
+                        logger.exception('Error dispatching VK event')
+            except KeyboardInterrupt:
+                raise
             except Exception:
-                logger.exception('Error dispatching VK event')
+                logger.warning(
+                    'VK LongPoll connection lost, reconnecting in %ds…',
+                    delay, exc_info=True,
+                )
+                import time
+                time.sleep(delay)
+                delay = min(delay * 2, self._RECONNECT_MAX_DELAY)
+                try:
+                    self._longpoll = VkBotLongPoll(
+                        self._session, self._longpoll.group_id,
+                    )
+                except Exception:
+                    logger.warning('Failed to recreate LongPoll', exc_info=True)
 
     @staticmethod
     def _parse_payload(raw) -> dict:

@@ -39,8 +39,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write('Starting bot...')
         threading.Thread(target=_scheduler_loop, daemon=True).start()
-        try:
-            run_bot()
-        except Exception as exc:
-            self.stderr.write(f'Bot crashed: {exc}')
-            raise
+        run_bot()
