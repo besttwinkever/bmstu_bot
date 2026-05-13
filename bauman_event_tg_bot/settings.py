@@ -255,7 +255,6 @@ JAZZMIN_SETTINGS = {
         'oauth.OauthUser': 'fas fa-user',
         'bot_app.TgUser': 'fas fa-comments',
         'bot_app.Discipline': 'fas fa-book',
-        'bot_app.BotCommand': 'fas fa-terminal',
         'bot_app.Notification': 'fas fa-bell',
         'bot_app.AuthToken': 'fas fa-key',
         'bot_send_file.SubmissionType': 'fas fa-tasks',

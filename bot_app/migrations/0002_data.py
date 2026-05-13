@@ -4,8 +4,6 @@ from datetime import datetime
 from django.contrib.auth.models import Group, User
 from django.db import migrations
 
-from bot_app.models import BotCommand
-
 
 def forward(apps, schema_editor):
     db_alias = schema_editor.connection.alias

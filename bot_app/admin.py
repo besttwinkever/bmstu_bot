@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import Group
 from oauth.models import OauthUser
 
-from bot_app.models import TgUser, Discipline, BotCommand
+from bot_app.models import TgUser, Discipline
 from bot_app.services.auth import AuthService
 
 
@@ -22,13 +22,6 @@ class TgUserAdmin(admin.ModelAdmin):
         'user__username', 'user__first_name', 'user__last_name',
         'messenger_id',
     )
-
-
-@admin.register(BotCommand)
-class BotCommandAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
-    filter_horizontal = ('applicable_groups',)
-    search_fields = ('name', 'description')
 
 
 # OauthUser должен идти под полноценным UserAdmin

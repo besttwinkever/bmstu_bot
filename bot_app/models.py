@@ -100,17 +100,3 @@ class Notification(models.Model):
         return f'Рассылка для дисциплины «{self.discipline.name}»'
 
 
-class BotCommand(models.Model):
-    class Meta:
-        verbose_name = 'Команда бота'
-        verbose_name_plural = 'Команды бота'
-
-    name = models.CharField('Название кнопки', max_length=255, unique=True, null=False)
-    applicable_groups = models.ManyToManyField(
-        Group, blank=True,
-        verbose_name='Кому показывать (роли)',
-    )
-    description = models.TextField('Описание')
-
-    def __str__(self):
-        return self.name
