@@ -20,7 +20,7 @@ def _whoami(ctx: Context, user: AuthenticatedUser) -> None:
         if disciplines:
             ctx.reply('Преподаватель: ' + ', '.join(str(d) for d in disciplines))
         else:
-            ctx.reply('Сотрудник университета')
+            ctx.reply('Преподаватель')
     elif user.role == UserRole.EXTERNAL:
         ctx.reply('Сотрудник сторонней организации')
     else:

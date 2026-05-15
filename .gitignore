@@ -112,3 +112,6 @@ static_collected
 .submissions
 # Claude Code worktrees / artefacts
 .claude/
+
+примеры файлов
+media/submissions

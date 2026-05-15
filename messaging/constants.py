@@ -21,7 +21,7 @@ class CallbackData:
 
 class UserGroup:
     STUDENT = 'Студент'
-    STAFF = 'Сотрудник'
+    STAFF = 'Преподаватель'
     EXTERNAL = 'Сторонний'
 
 

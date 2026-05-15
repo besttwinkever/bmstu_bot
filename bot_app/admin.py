@@ -59,4 +59,7 @@ class DisciplineAdmin(admin.ModelAdmin):
             kwargs['queryset'] = Group.objects.exclude(
                 name__in=AuthService.role_group_names()
             ).order_by('name')
-        return super().formfield_for_manytomany(db_field, request, **kwargs)
+        field = super().formfield_for_manytomany(db_field, request, **kwargs)
+        if db_field.name == 'teachers':
+            field.label_from_instance = lambda obj: obj.get_full_name() or obj.username
+        return field

@@ -100,7 +100,7 @@ def _events_for_week(user, offset: int):
         SubmissionType.objects
         .filter(
             discipline__groups__pk__in=user.oauth_user.groups.exclude(
-                name__in={'Студент', 'Сотрудник', 'Сторонний'},
+                name__in={'Студент', 'Преподаватель', 'Сторонний'},
             ).values_list('pk', flat=True),
             deadline__gte=start,
             deadline__lt=end,

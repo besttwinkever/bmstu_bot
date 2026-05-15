@@ -71,6 +71,9 @@ def _cancel(ctx: Context) -> None:
 def _handle_text(ctx: Context) -> None:
     text = (ctx.event.text or '').strip()
     if not text:
+        session = fsm.get(ctx.platform_name, ctx.user_id)
+        if session.state == FSMState.AWAITING_FILE:
+            ctx.reply('Пожалуйста, прикрепите файл (документ).')
         return
 
     session = fsm.get(ctx.platform_name, ctx.user_id)

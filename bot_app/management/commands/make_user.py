@@ -2,7 +2,7 @@
 
 Примеры:
 
-    # Преподаватель (попадает в группу "Сотрудник", может логиниться в /teacher/)
+    # Преподаватель (попадает в группу "Преподаватель", может логиниться в /teacher/)
     python manage.py make_user ivanov --password Secret123 --first-name Иван --last-name Иванов --role teacher
 
     # Админ Django (is_superuser=True, is_staff=True — попадает в /bot-admin/)
@@ -22,7 +22,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 ROLE_GROUPS = {
     'student': 'Студент',
-    'teacher': 'Сотрудник',
+    'teacher': 'Преподаватель',
     'external': 'Сторонний',
 }
 

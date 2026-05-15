@@ -4,6 +4,8 @@ from __future__ import annotations
 import io
 import json
 import logging
+import re
+import time
 from typing import Callable, Dict, List, Optional
 
 try:
@@ -69,7 +71,6 @@ class VKAdapter(MessagingPlatform):
     @staticmethod
     def _strip_markdown(text: str) -> str:
         # VK не поддерживает Telegram-Markdown — стираем парные * и _.
-        import re
         cleaned = re.sub(r'\*([^\n*]+)\*', r'\1', text or '')
         cleaned = re.sub(r'_([^\n_]+)_', r'\1', cleaned)
         return cleaned
@@ -138,7 +139,6 @@ class VKAdapter(MessagingPlatform):
                     'VK LongPoll connection lost, reconnecting in %ds…',
                     delay, exc_info=True,
                 )
-                import time
                 time.sleep(delay)
                 delay = min(delay * 2, self._RECONNECT_MAX_DELAY)
                 try:
