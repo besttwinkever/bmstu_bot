@@ -14,7 +14,7 @@ _model = None
 _model_lock = threading.Lock()
 
 DEFAULT_MODEL_NAME = 'cointegrated/rubert-tiny2'
-DEFAULT_THRESHOLD = 0.7
+DEFAULT_THRESHOLD = 0.82
 
 # Длинные документы делим на «окна»: SentenceTransformer-ы режут вход
 # по max_seq_length (обычно 256 токенов ≈ 1.5 кБ), и без чанкования мы
@@ -88,9 +88,9 @@ def similarity_from_embeddings(
 ) -> float:
     """Сходство (0..100) по уже закодированным чанкам.
 
-    Берём максимум косинусной близости по парам чанков — для длинных
-    документов это надёжнее, чем усреднение: один общий абзац уже
-    сигнал, который не должен размываться остальным несовпадающим.
+    Берём среднее косинусной близости по лучшему совпадению каждого
+    чанка первого текста — баланс между чувствительностью к совпадениям
+    и устойчивостью к тематическому шуму.
     """
     if emb1 is None or emb2 is None:
         return 0.0
@@ -98,7 +98,12 @@ def similarity_from_embeddings(
     from sentence_transformers import util
 
     th = _resolve_threshold(threshold)
-    raw = float(util.cos_sim(emb1, emb2).max().item())
+    cos_matrix = util.cos_sim(emb1, emb2)
+    # Для каждого чанка первого текста берём лучшее совпадение со вторым,
+    # затем усредняем — это даёт устойчивую оценку без завышения от
+    # одной случайно похожей пары.
+    best_per_chunk = cos_matrix.max(dim=1).values
+    raw = float(best_per_chunk.mean().item())
     return _percent_from_cosine(raw, th)
 
 

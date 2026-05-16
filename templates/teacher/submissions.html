@@ -127,12 +127,12 @@
                                             </span>
                                         {% elif report.verdict == 'suspicious' %}
                                             <span class="badge bg-warning text-dark"
-                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}% (победил: {{ report.winning_method }})">
-                                                Рерайт · {{ report.final_score|floatformat:1 }}%
+                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}%">
+                                                Подозрительно · {{ report.final_score|floatformat:1 }}%
                                             </span>
                                         {% elif report.verdict == 'plagiarism' %}
                                             <span class="badge bg-danger"
-                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}% (победил: {{ report.winning_method }})">
+                                                  title="Шинглы: {{ report.shingle_score|default_if_none:'—'|floatformat:1 }}% · BERT: {{ report.bert_score|default_if_none:'—'|floatformat:1 }}%">
                                                 Плагиат · {{ report.final_score|floatformat:1 }}%
                                             </span>
                                         {% endif %}

@@ -135,8 +135,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'oauth.OauthUser'
 
 # --- Celery --------------------------------------------------------------
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'memory://')
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'cache+memory://')
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -168,7 +168,7 @@ BOT_DEBUG_USER_LAST_NAME = os.getenv('BOT_DEBUG_USER_LAST_NAME', 'User')
 
 # --- Plagiarism ---------------------------------------------------------
 PLAGIARISM_BERT_MODEL = os.getenv('PLAGIARISM_BERT_MODEL', 'cointegrated/rubert-tiny2')
-PLAGIARISM_BERT_THRESHOLD = float(os.getenv('PLAGIARISM_BERT_THRESHOLD', '0.7'))
+PLAGIARISM_BERT_THRESHOLD = float(os.getenv('PLAGIARISM_BERT_THRESHOLD', '0.82'))
 PLAGIARISM_SHINGLE_SIZE = int(os.getenv('PLAGIARISM_SHINGLE_SIZE', '3'))
 PLAGIARISM_SHINGLE_PREFILTER = float(os.getenv('PLAGIARISM_SHINGLE_PREFILTER', '15.0'))
 PLAGIARISM_SUSPICIOUS_THRESHOLD = float(os.getenv('PLAGIARISM_SUSPICIOUS_THRESHOLD', '30.0'))

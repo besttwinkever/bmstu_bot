@@ -33,7 +33,7 @@ class Match:
 @dataclass
 class PlagiarismConfig:
     shingle_size: int = 3
-    bert_threshold: float = 0.7
+    bert_threshold: float = 0.82
     shingle_prefilter: float = 15.0
     suspicious_threshold: float = 30.0
     plagiarism_threshold: float = 70.0
@@ -191,10 +191,6 @@ def _run_check(
 
         if shingle_score >= cfg.plagiarism_threshold:
             # Шинглы уже дали потолок — BERT не повысит max(), экономим.
-            bert_score = 0.0
-        elif shingle_score < cfg.shingle_prefilter:
-            # Дешёвый префильтр: при очень слабом совпадении по шинглам
-            # вероятность семантического совпадения невелика, BERT не запускаем.
             bert_score = 0.0
         else:
             if suspect_embedding is None:

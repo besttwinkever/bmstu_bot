@@ -49,6 +49,22 @@ services:
       - .env
     restart: unless-stopped
 
+  celery:
+    build: .
+    command: celery -A bauman_event_tg_bot worker --loglevel=info
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    restart: unless-stopped
+
   bot:
     build: .
     command: python manage.py runbot

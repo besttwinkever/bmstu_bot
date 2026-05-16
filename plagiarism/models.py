@@ -9,7 +9,7 @@ class Verdict(models.TextChoices):
     UNSUPPORTED = 'unsupported', 'Формат не поддерживается'
     ERROR = 'error', 'Ошибка проверки'
     ORIGINAL = 'original', 'Оригинал'
-    SUSPICIOUS = 'suspicious', 'Подозрение на рерайт'
+    SUSPICIOUS = 'suspicious', 'Подозрительно'
     PLAGIARISM = 'plagiarism', 'Плагиат'
 
 
