@@ -3,6 +3,7 @@ django_extensions
 djangorestframework
 icalendar
 psycopg2-binary
+pgvector
 python-dotenv
 django-jazzmin
 pytz

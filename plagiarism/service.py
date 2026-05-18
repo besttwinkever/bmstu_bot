@@ -10,7 +10,12 @@ from django.db.models import Q
 
 from bot_send_file.models import Submission
 
-from .bert import encode_chunks, similarity_from_embeddings
+from .bert import (
+    encode_chunks,
+    get_or_compute_embeddings,
+    similarity_from_embeddings,
+    store_embeddings,
+)
 from .extractors import UnsupportedFormat, extract_text
 from .models import PlagiarismReport, Verdict
 from .shingles import jaccard_similarity
@@ -166,8 +171,10 @@ def _run_check(
         report.save()
         return report
 
-    # Эмбеддинги суспект-текста кодируются один раз и переиспользуются
-    # на каждом кандидате — иначе на крупном курсе тратим минуты впустую.
+    # Эмбеддинги суспект-текста вычисляются один раз и сохраняются
+    # в pgvector. При последующих проверках (новая работа на том же
+    # курсе) эмбеддинги всех ранее проверенных работ подтягиваются
+    # из БД за ~1 мс вместо повторного BERT-инференса (~200 мс+).
     suspect_embedding = None
 
     best: Optional[Match] = None
@@ -194,9 +201,13 @@ def _run_check(
             bert_score = 0.0
         else:
             if suspect_embedding is None:
-                suspect_embedding = encode_chunks(suspect_text)
+                suspect_embedding = get_or_compute_embeddings(
+                    submission, suspect_text,
+                )
             try:
-                candidate_embedding = encode_chunks(original_text)
+                candidate_embedding = get_or_compute_embeddings(
+                    candidate, original_text,
+                )
                 bert_score = similarity_from_embeddings(
                     suspect_embedding, candidate_embedding, cfg.bert_threshold
                 )

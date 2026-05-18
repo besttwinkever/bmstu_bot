@@ -1,7 +1,12 @@
 from django.db import models
 from django.utils import timezone
+from pgvector.django import VectorField
 
 from bot_send_file.models import Submission
+
+
+# cointegrated/rubert-tiny2 отдаёт вектор размерности 312.
+EMBEDDING_DIMENSION = 312
 
 
 class Verdict(models.TextChoices):
@@ -58,3 +63,33 @@ class PlagiarismReport(models.Model):
 
     def __str__(self):
         return f'Антиплагиат: {self.get_verdict_display()} ({self.submission_id})'
+
+
+class SubmissionEmbedding(models.Model):
+    """Персистентное хранение BERT-эмбеддингов чанков работы (pgvector).
+
+    Одна работа → до 12 чанков → 12 строк. При повторных проверках
+    антиплагиата эмбеддинги берутся из БД за ~1 мс вместо повторного
+    прогона BERT-инференса (~200 мс+ на чанк).
+    """
+
+    class Meta:
+        verbose_name = 'Эмбеддинг работы'
+        verbose_name_plural = 'Эмбеддинги работ'
+        unique_together = (('submission', 'chunk_index'),)
+        ordering = ['submission', 'chunk_index']
+
+    submission = models.ForeignKey(
+        Submission,
+        on_delete=models.CASCADE,
+        related_name='embeddings',
+        verbose_name='Работа',
+    )
+    chunk_index = models.PositiveSmallIntegerField('Индекс чанка')
+    embedding = VectorField(
+        dimensions=EMBEDDING_DIMENSION,
+        verbose_name='Вектор',
+    )
+
+    def __str__(self):
+        return f'Chunk {self.chunk_index} — submission {self.submission_id}'

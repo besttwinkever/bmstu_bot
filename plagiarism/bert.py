@@ -5,7 +5,12 @@ import logging
 import threading
 from typing import Optional
 
+import torch
 from django.conf import settings
+from django.db import transaction
+from sentence_transformers import SentenceTransformer, util
+
+from .models import SubmissionEmbedding
 
 
 logger = logging.getLogger(__name__)
@@ -18,10 +23,10 @@ DEFAULT_THRESHOLD = 0.82
 
 # Длинные документы делим на «окна»: SentenceTransformer-ы режут вход
 # по max_seq_length (обычно 256 токенов ≈ 1.5 кБ), и без чанкования мы
-# сравниваем только начало работ — для рефератов это критично.
+# сравниваем только начало работ — для дипломов/рефератов это критично.
 _CHUNK_SIZE_CHARS = 1500
 _CHUNK_OVERLAP_CHARS = 200
-_MAX_CHUNKS_PER_TEXT = 12
+_MAX_CHUNKS_PER_TEXT = 100
 
 
 def _get_model():
@@ -31,8 +36,6 @@ def _get_model():
     with _model_lock:
         if _model is not None:
             return _model
-        from sentence_transformers import SentenceTransformer
-
         model_name = getattr(settings, 'PLAGIARISM_BERT_MODEL', DEFAULT_MODEL_NAME)
         logger.info('Loading BERT model %s', model_name)
         _model = SentenceTransformer(model_name)
@@ -95,8 +98,6 @@ def similarity_from_embeddings(
     if emb1 is None or emb2 is None:
         return 0.0
 
-    from sentence_transformers import util
-
     th = _resolve_threshold(threshold)
     cos_matrix = util.cos_sim(emb1, emb2)
     # Для каждого чанка первого текста берём лучшее совпадение со вторым,
@@ -105,6 +106,65 @@ def similarity_from_embeddings(
     best_per_chunk = cos_matrix.max(dim=1).values
     raw = float(best_per_chunk.mean().item())
     return _percent_from_cosine(raw, th)
+
+
+# ---------------------------------------------------------------------------
+#  pgvector: персистентное хранение эмбеддингов
+# ---------------------------------------------------------------------------
+
+def store_embeddings(submission, text: str) -> None:
+    """Закодировать текст BERT-ом и сохранить эмбеддинги чанков в PostgreSQL.
+
+    Если эмбеддинги для этой работы уже есть — перезаписываются (идемпотентно).
+    """
+    chunks = _split_into_chunks(text)
+    if not chunks:
+        return
+
+    model = _get_model()
+    vectors = model.encode(chunks, convert_to_numpy=True)
+
+    with transaction.atomic():
+        SubmissionEmbedding.objects.filter(submission=submission).delete()
+        SubmissionEmbedding.objects.bulk_create([
+            SubmissionEmbedding(
+                submission=submission,
+                chunk_index=i,
+                embedding=vec.tolist(),
+            )
+            for i, vec in enumerate(vectors)
+        ])
+
+
+def load_embeddings(submission):
+    """Загрузить эмбеддинги из БД как тензор [N, dim]. None — если нет записей."""
+    rows = list(
+        SubmissionEmbedding.objects
+        .filter(submission=submission)
+        .order_by('chunk_index')
+        .values_list('embedding', flat=True)
+    )
+    if not rows:
+        return None
+    return torch.tensor(rows, dtype=torch.float32)
+
+
+def get_or_compute_embeddings(submission, text: str | None = None):
+    """Загрузить эмбеддинги из pgvector или вычислить, сохранить и вернуть.
+
+    Если text=None и в БД ничего нет — вернёт None (старая работа без
+    текста «на руках»). При первом прогоне антиплагиата с текстом —
+    эмбеддинги будут сохранены; все последующие проверки пойдут из БД.
+    """
+    emb = load_embeddings(submission)
+    if emb is not None:
+        return emb
+
+    if text is None:
+        return None
+
+    store_embeddings(submission, text)
+    return load_embeddings(submission)
 
 
 def semantic_similarity(
