@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import Group
 from oauth.models import OauthUser
 
-from bot_app.models import TgUser, Discipline
+from bot_app.models import TgUser, Discipline, Notification
 from bot_app.services.auth import AuthService
 
 
@@ -63,3 +63,16 @@ class DisciplineAdmin(admin.ModelAdmin):
         if db_field.name == 'teachers':
             field.label_from_instance = lambda obj: obj.get_full_name() or obj.username
         return field
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('discipline', 'short_text', 'created_at', 'scheduled_at', 'is_sent')
+    list_filter = ('is_sent', 'discipline')
+    search_fields = ('text', 'discipline__name')
+    ordering = ('-created_at',)
+
+    @admin.display(description='Текст')
+    def short_text(self, obj):
+        text = obj.text or ''
+        return f'{text[:80]}...' if len(text) > 80 else text

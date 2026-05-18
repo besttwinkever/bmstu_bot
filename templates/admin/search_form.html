@@ -1,0 +1,24 @@
+{% load i18n static %}
+{% if cl.search_fields %}
+<div id="toolbar">
+    <form id="changelist-search" method="get">
+        <div>
+            <label for="searchbar">
+                <img src="{% static 'admin/img/search.svg' %}" alt="{% trans 'Search' %}">
+            </label>
+            <input type="text" size="40" name="{{ search_var }}" value="{{ cl.query }}" id="searchbar" placeholder="{% trans 'Search' %}...">
+            <input type="submit" value="{% trans 'Search' %}">
+            {% if show_result_count %}
+                <span class="small quiet">
+                    {% blocktrans count counter=cl.result_count %}{{ counter }} result{% plural %}{{ counter }} results{% endblocktrans %} ({{ cl.full_result_count }} total)
+                </span>
+            {% endif %}
+            {% for pair in cl.params.items %}
+                {% if pair.0 != search_var %}
+                    <input type="hidden" name="{{ pair.0 }}" value="{{ pair.1 }}">
+                {% endif %}
+            {% endfor %}
+        </div>
+    </form>
+</div>
+{% endif %}

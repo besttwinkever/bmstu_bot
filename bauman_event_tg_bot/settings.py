@@ -237,7 +237,7 @@ LOGGING = {
 
 LOGIN_URL = '/teacher/login/'
 LOGIN_REDIRECT_URL = '/teacher/panel/'
-LOGOUT_REDIRECT_URL = '/teacher/login/'
+LOGOUT_REDIRECT_URL = 'admin:login'
 
 # Jazzmin settings
 JAZZMIN_SETTINGS = {

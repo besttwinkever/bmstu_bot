@@ -62,11 +62,10 @@
             <div class="list-group list-group-flush">
                 {% for notification in notifications %}
                     <div class="list-group-item">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1 text-truncate" style="max-width: 60%;">{{ notification.text }}</h6>
-                            <small class="text-muted">{{ notification.created_at|date:"d.m.Y H:i" }}</small>
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <p class="mb-1 text-break me-3" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">{{ notification.text }}</p>
+                            <small class="text-muted text-nowrap">{{ notification.created_at|date:"d.m.Y H:i" }}</small>
                         </div>
-                        <p class="mb-1 text-break">{{ notification.text }}</p>
                         <div class="mt-2 d-flex justify-content-between align-items-center">
                             <div>
                                 {% if notification.is_sent %}
